@@ -57,6 +57,8 @@ class WebClient
           formkey: form_key,
           form_cookie: form_cookie,
           message: text,
+          parseurl: "yes",
+          bookmark: "yes",
           submit: "Submit Reply",
         },
       )
@@ -71,6 +73,8 @@ class WebClient
           action: "updatepost",
           postid: post_id,
           message: text,
+          parseurl: "yes",
+          bookmark: "yes",
           submit: "Save Changes",
         },
       )
