@@ -1,0 +1,166 @@
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  Exclude:
+    - bin/**/*
+    - tmp/**/*
+
+plugins:
+  - rubocop-rspec
+
+# Alterations from defaults based on project style preferences
+Naming/RescuedExceptionsVariableName:
+  Enabled: false
+
+Style/BlockComments:
+  Exclude:
+    - spec/**/*
+
+Style/ClassAndModuleChildren:
+  EnforcedStyle: compact
+  Exclude:
+    - lib/**/*
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Layout/MultilineMethodCallIndentation:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Layout/AccessModifierIndentation:
+  EnforcedStyle: outdent
+
+RSpec/NestedGroups:
+  Enabled: false
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/ContextWording:
+  Prefixes:
+    - and
+    - but
+    - if
+    - in
+    - when
+    - with
+    - without
+
+RSpec/AnyInstance:
+  Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - spec/**/*
+
+Layout/ArgumentAlignment:
+  Enabled: false
+
+Layout/FirstArgumentIndentation:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Style/TrailingCommaInArguments:
+  EnforcedStyleForMultiline: consistent_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Layout/MultilineMethodCallBraceLayout:
+  EnforcedStyle: new_line
+
+Style/AsciiComments:
+  Enabled: false
+
+Layout/CaseIndentation:
+  EnforcedStyle: end
+
+Style/Lambda:
+  Enabled: false
+
+Layout/SpaceInLambdaLiteral:
+  Enabled: false
+
+Style/RedundantSelf:
+  Enabled: false
+
+Style/PreferredHashMethods:
+  EnforcedStyle: verbose
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: variable
+
+Style/BlockDelimiters:
+  EnforcedStyle: semantic
+  AllowBracesOnProceduralOneLiners: true
+
+Style/GuardClause:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Naming/MethodParameterName:
+  AllowedNames:
+    - as
+    - id
+
+Layout/LineLength:
+  Exclude:
+    - Gemfile
+    - spec/**/*
+    - something_awful.gemspec
+
+Metrics/AbcSize:
+  Enabled: false
+
+Style/IfUnlessModifierOfIfUnless:
+  Enabled: false
+
+Style/NestedModifier:
+  Enabled: false
+
+Style/SoleNestedConditional:
+  Enabled: false
+
+Naming/VariableNumber:
+  EnforcedStyle: snake_case
+
+Metrics/ModuleLength:
+  Exclude:
+    - spec/**/*
+
+Metrics/ClassLength:
+  Max: 150
+
+RSpec/SubjectStub:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: true
+
+Layout/ArrayAlignment:
+  Enabled: false
+
+Layout/FirstArrayElementIndentation:
+  Enabled: false
+
+Style/Alias:
+  EnforcedStyle: prefer_alias_method

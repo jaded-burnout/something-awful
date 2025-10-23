@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "./http/web_client"
-require_relative "./parsing/post_parser"
+require_relative "http/web_client"
+require_relative "parsing/post_parser"
 
 class SomethingAwful::Client
-  MODS_AND_FORUMS_JSON_URL = "https://forums.somethingawful.com/index.php?json=1".freeze
+  MODS_AND_FORUMS_JSON_URL = "https://forums.somethingawful.com/index.php?json=1"
 
   def self.fetch_mods_and_forums(cookies_file_path)
     WebClient.new(cookies_file_path: cookies_file_path)
@@ -16,24 +16,25 @@ class SomethingAwful::Client
       .fetch_profile(user_id: something_awful_id)
   end
 
-  def initialize(thread_id:)
+  def initialize(thread_id:, cookies_file_path: nil)
     @thread_id = thread_id
+    @cookies_file_path = cookies_file_path
   end
 
   def user_posts
     posts.select(&:user?)
   end
 
-  def user_and_jb_posts(after:)
+  def bot_posts
+    posts.select(&:bot?)
+  end
+
+  def my_posts(after:)
     posts.select do |post|
       next false unless post.timestamp > after
 
-      post.user? || post.jb?
+      post.me?
     end
-  end
-
-  def bot_posts
-    posts.select(&:bot?)
   end
 
   def reply(text)
@@ -42,10 +43,10 @@ class SomethingAwful::Client
 
 private
 
-  attr_reader :thread_id
+  attr_reader :thread_id, :cookies_file_path
 
   def web_client
-    @web_client ||= WebClient.new(thread_id: thread_id)
+    @web_client ||= WebClient.new(thread_id: thread_id, cookies_file_path: cookies_file_path)
   end
 
   def posts

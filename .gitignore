@@ -7,3 +7,9 @@
 /spec/examples.txt
 /spec/reports/
 /tmp/
+
+# Authentication cookies - never commit these!
+.cookies
+*.cookies
+
+*.gem

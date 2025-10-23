@@ -23,14 +23,14 @@ module EnvironmentVariableHelper
     Tellus
   ].freeze
 
-  def with_env(options, &block)
-    ClimateControl.modify(options, &block)
+  def with_env(options, &)
+    ClimateControl.modify(options, &)
   end
 end
 
 RSpec.configure do |config|
   config.include EnvironmentVariableHelper
-  config.around(:example) do |example|
+  config.around do |example|
     envs = {
       "SIXERS" => EnvironmentVariableHelper::SIXERS.join("|"),
       "SEVEN_DAYS" => EnvironmentVariableHelper::SEVEN_DAYS.join("|"),

@@ -1,0 +1,208 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Generates a completely synthetic VCR cassette with fake forum data
+# that matches the HTML structure expected by the parser
+
+require 'yaml'
+require 'time'
+
+OUTPUT_PATH = File.expand_path('../spec/fixtures/vcr_cassettes/synthetic_single_page.yml', __dir__)
+
+# Synthetic data
+THREAD_ID = '1000001'
+THREAD_TITLE = 'Test Thread: Sample Discussion for Parser Testing'
+NUM_POSTS = 40
+
+# Generate synthetic users
+USERS = [
+  { id: '10001', name: 'TestUser1', registered: 'Jan 1, 2020', platinum: true, op: true },
+  { id: '10002', name: 'TestUser2', registered: 'Feb 15, 2020', platinum: true },
+  { id: '10003', name: 'TestUser3', registered: 'Mar 20, 2020', platinum: false },
+  { id: '10004', name: 'TestUser4', registered: 'Apr 5, 2020', platinum: true },
+  { id: '10005', name: 'TestUser5', registered: 'May 10, 2020', platinum: false },
+]
+
+# Generate synthetic posts
+def generate_post_html(index, post_id, user, timestamp)
+  author_classes = ['author']
+  author_classes << 'platinum' if user[:platinum]
+  author_classes << 'op' if user[:op] && index == 1
+
+  seen_class = index.even? ? 'seen2' : 'seen1'
+
+  post_content = case index % 5
+  when 0
+    "This is a test post with some sample content. Lorem ipsum dolor sit amet, consectetur adipiscing elit.<br />\\r\\n<br />\\r\\nSed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+  when 1
+    "Another sample post demonstrating forum functionality. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris."
+  when 2
+    "This post contains multiple paragraphs.<br />\\r\\n<br />\\r\\nFirst paragraph with some text.<br />\\r\\n<br />\\r\\nSecond paragraph with more content."
+  when 3
+    "Short reply post."
+  when 4
+    "A longer post with several points:<br />\\r\\n- Point one<br />\\r\\n- Point two<br />\\r\\n- Point three<br />\\r\\n<br />\\r\\nAnd a conclusion."
+  end
+
+  <<~HTML
+    <table class="post" id="post#{post_id}" data-idx="#{index}">
+    <tr  class="#{seen_class}" id="pti#{index}">
+    \t<td class="userinfo userid-#{user[:id]}">
+    \t\t<dl class="userinfo">
+    \t\t\t<dt class="#{author_classes.join(' ')}" title="#{user[:platinum] ? 'Platinum User' : 'Regular User'}">#{user[:name]}</dt>
+    \t\t\t<dd class="registered">#{user[:registered]}</dd>
+    \t\t\t<dd class="title">
+    \t\t\t\t<img src="https://example.com/avatar.gif" alt="" class="img" border="0">
+    \t\t\t</dd>
+
+    \t\t</dl>
+    \t</td>
+    \t<td class="postbody">
+    \t\t<!-- BeginContentMarker -->
+    \t\t<!-- google_ad_section_start -->
+    \t\t#{post_content}
+    \t\t<!-- google_ad_section_end -->
+    \t\t<!-- EndContentMarker -->
+
+
+    \t\t<p class="editedby">
+    \t</td>
+    </tr>
+    <tr class="#{seen_class}">
+    \t<td class="postdate">
+    \t\t<a class="lastseen_icon" href="/showthread.php?action=setseen&amp;threadid=#{THREAD_ID}&amp;index=#{index}" title="Mark all replies as read to this point"><img src="//fi.somethingawful.com/style/posticon-seen.gif" alt="*" border="0"></a>
+
+    \t\t<a href="#post#{post_id}" title="Link to this post">#</a>
+    \t\t<a class="user_jump" title="Show posts by this user" href="/showthread.php?threadid=#{THREAD_ID}&amp;userid=#{user[:id]}">?</a>
+    \t\t#{timestamp}
+    \t</td>
+    \t<td class="postlinks">
+    \t\t<ul class="profilelinks">
+    \t\t\t<li><a href="member.php?action=getinfo&amp;userid=#{user[:id]}">Profile</a></li>
+    \t\t\t<li><a href="private.php?action=newmessage&amp;userid=#{user[:id]}">Message</a></li>
+    \t\t\t<li><a href="query.php?action=posthistory&amp;userid=#{user[:id]}">Post History</a></li>\t\t\t<li><a href="banlist.php?userid=#{user[:id]}">Rap Sheet</a></li>
+    \t\t</ul>
+    \t\t<ul class="postbuttons">
+    \t\t\t
+    \t\t\t<li class="alertbutton"><a href="modalert.php?postid=#{post_id}&amp;username=#{user[:name]}"><img src="//fi.somethingawful.com/images/buttons/dark/dark-report7.png" border="0" alt="Alert Moderators"></a></li>
+
+    \t\t\t
+    \t\t\t<li><a href="editpost.php?action=editpost&amp;postid=#{post_id}"><img src="//fi.somethingawful.com/images/buttons/dark/dark-edit7.png" alt="Edit" title=""></a></li>
+
+
+    \t\t\t\t\t\t<li><a href="newreply.php?action=newreply&amp;postid=#{post_id}"><img src="//fi.somethingawful.com/images/buttons/dark/dark-quote7.png" alt="Quote" title=""></a></li>
+
+    \t\t</ul>
+    \t</td>
+    </tr>
+    </table>
+  HTML
+end
+
+# Generate all posts HTML
+puts "Generating #{NUM_POSTS} synthetic posts..."
+posts_html = []
+base_timestamp = Time.parse('2024-01-01 12:00:00')
+base_post_id = 1000001
+
+NUM_POSTS.times do |i|
+  index = i + 1
+  user = USERS[i % USERS.length]
+  post_id = base_post_id + i
+  timestamp_obj = base_timestamp + (i * 3600) # 1 hour apart
+  timestamp = timestamp_obj.strftime('%b %-d, %Y %H:%M')
+
+  posts_html << generate_post_html(index, post_id, user, timestamp)
+end
+
+# Build the complete HTML page
+page_html = <<~HTML
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+
+
+  \t<title>#{THREAD_TITLE} - The Something Awful Forums</title>
+  \t\t<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  \t<meta name="twitter:dnt" content="on">
+  \t<meta property="og:type" content="website">
+  \t<meta property="og:site_name" content="The Something Awful Forums">
+  \t<meta property="og:title" content="#{THREAD_TITLE}">
+  \t<meta name="Description" content="#{THREAD_TITLE}">
+  \t<link rel="icon" href="https://forums.somethingawful.com/favicon.ico">
+  \t<link rel="stylesheet" type="text/css" href="https://i.somethingawful.com/css/main.css">
+  </head>
+  <body>
+  <div id="content">
+  <div class="threadbar">
+  <h1 class="title">#{THREAD_TITLE}</h1>
+  <div class="pages">Page 1 of 1</div>
+  </div>
+  <div id="thread" class="thread:#{THREAD_ID}">
+  #{posts_html.join("\n")}
+  </div>
+  </div>
+  </body>
+  </html>
+HTML
+
+# Build the VCR cassette structure with just a GET request (login is via cookies)
+now = Time.now
+cassette = {
+  'http_interactions' => [
+    {
+      'request' => {
+        'method' => 'get',
+        'uri' => "https://forums.somethingawful.com/showthread.php?threadid=#{THREAD_ID}",
+        'body' => {
+          'encoding' => 'ASCII-8BIT',
+          'string' => ''
+        },
+        'headers' => {
+          'Connection' => ['close'],
+          'Host' => ['forums.somethingawful.com'],
+          'User-Agent' => ['http.rb/5.3.1']
+        }
+      },
+      'response' => {
+        'status' => {
+          'code' => 200,
+          'message' => 'OK'
+        },
+        'headers' => {
+          'Date' => [now.httpdate],
+          'Content-Type' => ['text/html; charset=windows-1252'],
+          'Transfer-Encoding' => ['chunked'],
+          'Connection' => ['close'],
+          'Server' => ['cloudflare'],
+          'Vary' => ['Accept-Encoding'],
+          'Cache-Control' => ['private, no-cache, pre-check=0, post-check=0'],
+          'Expires' => ['0'],
+          'Pragma' => ['no-cache'],
+          'X-Registered' => ['1'],
+          'X-Frame-Options' => ['SAMEORIGIN'],
+          'X-Xss-Protection' => ['1; mode=block'],
+          'X-Backend' => ['forums1'],
+          'Content-Security-Policy' => ['upgrade-insecure-requests'],
+          'Cf-Cache-Status' => ['DYNAMIC'],
+          'Set-Cookie' => ['<FILTERED_COOKIE>'],
+          'Cf-Ray' => ['test-ray-id']
+        },
+        'body' => {
+          'encoding' => 'Windows-1252',
+          'string' => page_html
+        }
+      },
+      'recorded_at' => now.utc.strftime('%a, %d %b %Y %H:%M:%S GMT')
+    }
+  ],
+  'recorded_with' => 'VCR 6.3.1'
+}
+
+# Write the cassette
+File.write(OUTPUT_PATH, YAML.dump(cassette))
+
+puts "✓ Synthetic cassette generated: #{OUTPUT_PATH}"
+puts "  Thread ID: #{THREAD_ID}"
+puts "  Posts: #{NUM_POSTS}"
+puts "  Users: #{USERS.length}"

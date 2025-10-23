@@ -14,8 +14,8 @@ RSpec.describe Record do
   it "assigns permitted attributes" do
     record = test_record_class.new(test: "123")
     expect(record.test).to eq("123")
-    expect(record.testing).to eq(nil)
-    expect(record.respond_to?(:nonattribute)).to eq(false)
+    expect(record.testing).to be_nil
+    expect(record.respond_to?(:nonattribute)).to be(false)
 
     record = test_record_class.new(test: "123", testing: "567")
     expect(record.test).to eq("123")
@@ -23,6 +23,6 @@ RSpec.describe Record do
 
     record = test_record_class.new(test: "123", nonattribute: "567")
     expect(record.test).to eq("123")
-    expect(record.respond_to?(:nonattribute)).to eq(false)
+    expect(record.respond_to?(:nonattribute)).to be(false)
   end
 end

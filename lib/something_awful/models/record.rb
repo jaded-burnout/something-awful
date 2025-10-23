@@ -12,7 +12,6 @@ class Record
     attr_reader :permitted_attrs
   end
 
-
   def initialize(params = {})
     params.each do |attribute, value|
       next unless self.class.permitted_attrs.include?(attribute)

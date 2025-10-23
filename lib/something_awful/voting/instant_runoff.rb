@@ -2,7 +2,7 @@ class InstantRunoff
   MAJORITY_THRESHOLD = 50 # percent
 
   def initialize(votes:)
-    @votes = votes.reject(&:empty?)
+    @votes = votes.reject { |v| v.nil? || v.empty? }
   end
 
   def report
@@ -21,7 +21,12 @@ class InstantRunoff
         winner = majority_winner
       else
         @votes, eliminated_candidates = reassign_loser_votes(@votes, votes_per_candidate)
-        output.puts "No majority found.  #{to_sentence(eliminated_candidates)} #{pluralize('is', 'are', eliminated_candidates.count)} eliminated."
+        candidate_sentence = [
+          to_sentence(eliminated_candidates),
+          pluralize("is", "are", eliminated_candidates.count),
+        ].join(" ")
+
+        output.puts "No majority found.  #{candidate_sentence} eliminated."
         output.puts
       end
     end
@@ -39,7 +44,7 @@ class InstantRunoff
 private
 
   def find_winner_by_majority(votes_per_candidate, total_vote_count)
-    highest_candidate, count = votes_per_candidate.sort_by(&:last).last
+    highest_candidate, count = votes_per_candidate.max_by(&:last)
 
     if count && percentage(count, total_vote_count) > MAJORITY_THRESHOLD
       highest_candidate
@@ -48,18 +53,17 @@ private
 
   def reassign_loser_votes(votes, votes_per_candidate)
     candidates_with_lowest_vote = find_candidates_with_lowest_vote(votes_per_candidate)
-
     candidates_to_eliminate = if candidates_with_lowest_vote == votes_per_candidate.keys
       find_candidates_with_fewest_overall_votes(candidates_with_lowest_vote)
     else
       candidates_with_lowest_vote
     end
 
-    reassigned_votes = votes.map do |vote_list|
+    reassigned_votes = votes.map { |vote_list|
       vote_list - candidates_to_eliminate
-    end
+    }
 
-    [reassigned_votes.reject(&:empty?), candidates_to_eliminate.sort]
+    [reassigned_votes.reject { |v| v.nil? || v.empty? }, candidates_to_eliminate.sort]
   end
 
   def percentage(count, total)
@@ -69,7 +73,7 @@ private
   def tally_votes(votes)
     votes_per_candidate = Hash.new(0)
 
-    votes.each do |voted_candidate, _|
+    votes.each do |(voted_candidate, _rest)|
       if voted_candidate
         votes_per_candidate[voted_candidate] += 1
       end
@@ -79,7 +83,7 @@ private
   end
 
   def find_candidates_with_lowest_vote(votes_per_candidate)
-    lowest_vote_count = votes_per_candidate.map(&:last).sort.first
+    lowest_vote_count = votes_per_candidate.map(&:last).min
     votes_per_candidate.each_with_object([]) { |(candidate, vote_count), array|
       array << candidate if vote_count == lowest_vote_count
     }
@@ -99,9 +103,9 @@ private
   def print_individual_results(votes_per_candidate, output)
     votes_per_candidate
       .sort_by { |candidate, count| [-count, candidate] }
-      .each { |candidate, count|
+      .each do |candidate, count|
         output.puts "#{candidate}: #{count}/#{@votes.count} (#{percentage(count, @votes.count).round(2)}%)"
-      }
+      end
 
     output.puts
   end
@@ -116,14 +120,10 @@ private
   end
 
   def to_sentence(strings)
-    [strings[0..-2].join(', '), strings.last].reject(&:empty?).join(' and ')
+    [strings[0..-2].join(", "), strings.last].reject { |s| s.nil? || s.empty? }.join(" and ")
   end
 
   def pluralize(singular, plural, count)
-    if count == 1
-      singular
-    else
-      plural
-    end
+    count == 1 ? singular : plural
   end
 end

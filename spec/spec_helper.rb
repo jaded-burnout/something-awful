@@ -19,7 +19,9 @@ require "something_awful"
 
 Bundler.require(:default, :development)
 
-Dir[SomethingAwful.root + "spec/support/*.rb"].each {|file| require file }
+require "webmock/rspec"
+
+Dir["#{SomethingAwful.root}spec/support/*.rb"].each { |file| require file }
 
 RSpec.configure do |config|
   # rspec-expectations config goes here. You can use an alternate

@@ -3,18 +3,18 @@ require "spec_helper"
 require "voting/instant_runoff"
 
 RSpec.describe InstantRunoff do
-  subject { described_class.new(votes: votes) }
+  subject(:runoff) { described_class.new(votes: votes) }
 
-  context "When the dog candidate has more than 50% of the vote in the first round" do
+  context "when the dog candidate has more than 50% of the vote in the first round" do
     let(:votes) {
       [
-        [
-          "Dog",
-          "Cat",
+        %w[
+          Dog
+          Cat
         ],
-        [
-          "Dog",
-          "Rat",
+        %w[
+          Dog
+          Rat
         ],
         [
           "Cat",
@@ -23,8 +23,8 @@ RSpec.describe InstantRunoff do
     }
 
     it "provides a full text report showing the dog as the winner" do
-      expect(subject.report).to eq(
-        <<~REPORT
+      expect(runoff.report).to eq(
+        <<~REPORT,
           Round 1
 
           Dog: 2/3 (66.67%)
@@ -36,30 +36,30 @@ RSpec.describe InstantRunoff do
     end
   end
 
-  context "When the cat candidate has more than 50% of the vote after two rounds" do
+  context "when the cat candidate has more than 50% of the vote after two rounds" do
     let(:votes) {
       [
-        [
-          "Rat",
-          "Cat",
+        %w[
+          Rat
+          Cat
         ],
-        [
-          "Dog",
-          "Cat",
-        ],
-        [
-          "Cat",
+        %w[
+          Dog
+          Cat
         ],
         [
           "Cat",
-          "Rat",
-        ]
+        ],
+        %w[
+          Cat
+          Rat
+        ],
       ]
     }
 
     it "provides a full text report showing the cat as the winner" do
-      expect(subject.report).to eq(
-        <<~REPORT
+      expect(runoff.report).to eq(
+        <<~REPORT,
           Round 1
 
           Cat: 2/4 (50.0%)
@@ -78,22 +78,22 @@ RSpec.describe InstantRunoff do
     end
   end
 
-  context "In a first-round tie where Cat should win in the second round" do
+  context "in a first-round tie where Cat should win in the second round" do
     let(:votes) {
       [
         [
           "Cat",
         ],
-        [
-          "Rat",
-          "Cat",
-        ]
+        %w[
+          Rat
+          Cat
+        ],
       ]
     }
 
     it "provides a full text report showing the cat as the winner after eliminating the candidate with the fewest overall votes" do
-      expect(subject.report).to eq(
-        <<~REPORT
+      expect(runoff.report).to eq(
+        <<~REPORT,
           Round 1
 
           Cat: 1/2 (50.0%)
@@ -111,30 +111,30 @@ RSpec.describe InstantRunoff do
     end
   end
 
-  context "In a complete stalemate" do
+  context "in a complete stalemate" do
     let(:votes) {
       [
-        [
-          "Cat",
-          "Rat",
-          "Dog",
+        %w[
+          Cat
+          Rat
+          Dog
         ],
-        [
-          "Rat",
-          "Dog",
-          "Cat",
+        %w[
+          Rat
+          Dog
+          Cat
         ],
-        [
-          "Dog",
-          "Cat",
-          "Rat",
+        %w[
+          Dog
+          Cat
+          Rat
         ],
       ]
     }
 
     it "calls for a new vote" do
-      expect(subject.report).to eq(
-        <<~REPORT
+      expect(runoff.report).to eq(
+        <<~REPORT,
           Round 1
 
           Cat: 1/3 (33.33%)

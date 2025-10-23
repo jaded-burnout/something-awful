@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "./record"
+require_relative "record"
 
 class Post < Record
   ADBOT = "Adbot"
@@ -13,16 +13,20 @@ class Post < Record
   ]
 
   def bot?
-    [ADBOT, bot_name].reject(&:blank?).include?(author)
+    [ADBOT, bot_name].compact.reject { |name| name.nil? || name.empty? }.include?(author)
   end
 
   def user?
     !bot?
   end
 
+  def me?
+    author == ENV["SA_USERNAME"]
+  end
+
 private
 
   def bot_name
-    ENV["username"]
+    ENV.fetch("SA_USERNAME", nil)
   end
 end
