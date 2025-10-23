@@ -206,6 +206,45 @@ RSpec.describe SomethingAwful::Client do
     end
   end
 
+  describe "#fetch_page" do
+    before do
+      ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+        stub_request(:get, "#{WebClient::BASE_URL}/showthread.php?threadid=#{thread_id}")
+          .to_return(status: 200, body: thread_html)
+      end
+    end
+
+    it "returns posts and page count for a single page" do
+      ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+        posts, page_count = client.fetch_page(page_number: 1)
+
+        expect(posts).to be_an(Array)
+        expect(posts.length).to eq(4)
+        expect(page_count).to eq(3)
+      end
+    end
+
+    context "with user_id filter" do
+      let(:user_id) { "10001" }
+
+      before do
+        ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+          stub_request(:get, "#{WebClient::BASE_URL}/showthread.php?threadid=#{thread_id}&userid=#{user_id}")
+            .to_return(status: 200, body: thread_html_single)
+        end
+      end
+
+      it "returns filtered posts and page count" do
+        ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+          posts, page_count = client.fetch_page(page_number: 1, user_id: user_id)
+
+          expect(posts).to be_an(Array)
+          expect(page_count).to be_an(Integer)
+        end
+      end
+    end
+  end
+
   describe "fetching multiple pages" do
     let(:thread_page_3_html) { '<html><body><div class="pages"><a>1</a><a>2</a></div></body></html>' }
 

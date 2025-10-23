@@ -62,6 +62,11 @@ class SomethingAwful::Client
     end
   end
 
+  def fetch_page(page_number: 1, user_id: nil)
+    page_html = web_client.fetch_page(page_number: page_number, user_id: user_id)
+    PostParser.posts_for_page(page_html, page_count: true)
+  end
+
 private
 
   attr_reader :thread_id, :cookies_file_path

@@ -1,0 +1,142 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "optparse"
+require_relative "../lib/something_awful"
+
+def print_usage
+  puts <<~USAGE
+    Usage:
+      bin/cli thread <threadid> [<userid>]     View thread posts
+      bin/cli reply <threadid> -m <message>    Reply to thread
+      bin/cli edit <postid> -m <message>       Edit a post
+
+    Options:
+      -m, --message MESSAGE    Message content for reply/edit
+
+    Examples:
+      bin/cli thread 3824923
+      bin/cli thread 3824923 10001
+      bin/cli reply 3824923 -m "Hello world"
+      bin/cli edit 547430259 -m "Updated content"
+  USAGE
+end
+
+def display_posts(posts, current_page, total_pages, user_id = nil)
+  system("clear") || system("cls")
+
+  puts "=" * 80
+  filter_text = user_id ? " (filtered by user #{user_id})" : ""
+  puts "Page #{current_page} of #{total_pages}#{filter_text}"
+  puts "=" * 80
+  puts
+
+  posts.each do |post|
+    puts "Post ID: #{post.id} | Author: #{post.author} | #{post.timestamp}"
+    puts "-" * 80
+    puts post.text
+    puts
+    puts "=" * 80
+    puts
+  end
+end
+
+def view_thread(thread_id, user_id = nil)
+  client = SomethingAwful::Client.new(thread_id: thread_id)
+  current_page = 1
+
+  loop do
+    # Fetch current page
+    posts, total_pages = client.fetch_page(page_number: current_page, user_id: user_id)
+
+    # Display posts
+    display_posts(posts, current_page, total_pages, user_id)
+
+    # Show navigation prompt
+    print "Navigation: "
+    print "[n]ext " if current_page < total_pages
+    print "[p]revious " if current_page > 1
+    print "[g]oto [q]uit: "
+
+    input = $stdin.gets.chomp.downcase
+
+    case input
+    when "n", "next"
+      current_page += 1 if current_page < total_pages
+    when "p", "prev", "previous"
+      current_page -= 1 if current_page > 1
+    when "g", "goto"
+      print "Go to page (1-#{total_pages}): "
+      page_input = $stdin.gets.chomp.to_i
+      current_page = page_input if page_input >= 1 && page_input <= total_pages
+    when "q", "quit", "exit"
+      break
+    end
+  end
+
+  puts "\nExiting thread viewer."
+end
+
+def reply_to_thread(thread_id, message)
+  unless message
+    puts "Error: Message is required for reply"
+    exit 1
+  end
+
+  client = SomethingAwful::Client.new(thread_id: thread_id)
+
+  puts "Replying to thread #{thread_id}..."
+  result = client.reply(message)
+  puts "Reply posted successfully!"
+  puts result if result
+end
+
+def edit_post(post_id, message)
+  unless message
+    puts "Error: Message is required for edit"
+    exit 1
+  end
+
+  # We need a thread_id for the client, but it's not strictly required for editing
+  # Just use a dummy value since WebClient doesn't actually need it for edit
+  client = SomethingAwful::Client.new(thread_id: "1")
+
+  puts "Editing post #{post_id}..."
+  result = client.edit_post(post_id: post_id, text: message)
+  puts "Post edited successfully!"
+  puts result if result
+end
+
+# Parse command line arguments
+command = ARGV[0]
+target_id = ARGV[1]
+
+unless command && target_id
+  print_usage
+  exit 1
+end
+
+# Parse options
+options = {}
+OptionParser.new do |opts|
+  opts.on("-m", "--message MESSAGE", "Message content") do |msg|
+    options[:message] = msg
+  end
+end.parse!(ARGV[2..])
+
+# Extract optional user_id for thread command
+user_id = ARGV[2] if command == "thread" && ARGV[2] && !ARGV[2].start_with?("-")
+
+case command
+when "thread"
+  view_thread(target_id, user_id)
+when "reply"
+  reply_to_thread(target_id, options[:message])
+when "edit"
+  edit_post(target_id, options[:message])
+else
+  puts "Error: Unknown command '#{command}'"
+  print_usage
+  exit 1
+end
