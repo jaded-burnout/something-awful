@@ -152,6 +152,60 @@ RSpec.describe SomethingAwful::Client do
     end
   end
 
+  describe "#edit_post" do
+    let(:post_id) { "12345" }
+    let(:edit_text) { "Updated content" }
+
+    before do
+      ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+        stub_request(:post, "#{WebClient::BASE_URL}/editpost.php")
+          .with(body: hash_including(
+            "action" => "updatepost",
+            "postid" => post_id,
+            "message" => edit_text,
+          ),
+               )
+          .to_return(status: 302, headers: { "location" => "#{WebClient::BASE_URL}/showthread.php?threadid=#{thread_id}" })
+      end
+    end
+
+    it "delegates to WebClient#edit" do
+      ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+        result = client.edit_post(post_id: post_id, text: edit_text)
+        expect(result).to be_a(String)
+      end
+    end
+  end
+
+  describe "#posts_by_user" do
+    let(:user_id) { "10001" }
+
+    before do
+      ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+        stub_request(:get, "#{WebClient::BASE_URL}/showthread.php?threadid=#{thread_id}&userid=#{user_id}")
+          .to_return(status: 200, body: thread_html_single)
+      end
+    end
+
+    it "returns posts filtered by user ID" do
+      ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+        posts = client.posts_by_user(user_id: user_id)
+
+        expect(posts).to be_an(Array)
+        expect(posts.length).to eq(4)
+      end
+    end
+
+    it "caches posts per user_id" do
+      ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+        first_posts = client.posts_by_user(user_id: user_id)
+        second_posts = client.posts_by_user(user_id: user_id)
+
+        expect(first_posts.object_id).to eq(second_posts.object_id)
+      end
+    end
+  end
+
   describe "fetching multiple pages" do
     let(:thread_page_3_html) { '<html><body><div class="pages"><a>1</a><a>2</a></div></body></html>' }
 

@@ -1,9 +1,9 @@
 PATH
   remote: .
   specs:
-    something_awful (0.1.0.0)
-      http
-      oga
+    something_awful (1.0.0)
+      http (~> 5.3)
+      oga (~> 3.4)
 
 GEM
   remote: https://rubygems.org/

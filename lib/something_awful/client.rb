@@ -41,6 +41,27 @@ class SomethingAwful::Client
     web_client.reply(text)
   end
 
+  def edit_post(post_id:, text:)
+    web_client.edit(post_id: post_id, text: text)
+  end
+
+  def posts_by_user(user_id:)
+    @posts ||= {}
+    @posts[user_id] ||= begin
+      page = web_client.fetch_page(user_id: user_id)
+      posts, page_count = PostParser.posts_for_page(page, page_count: true)
+      page_number = 2
+
+      until page_number > page_count
+        page = web_client.fetch_page(page_number: page_number, user_id: user_id)
+        posts += PostParser.posts_for_page(page)
+        page_number += 1
+      end
+
+      posts
+    end
+  end
+
 private
 
   attr_reader :thread_id, :cookies_file_path

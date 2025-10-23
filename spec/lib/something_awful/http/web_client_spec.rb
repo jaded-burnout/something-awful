@@ -172,6 +172,37 @@ RSpec.describe WebClient do
     end
   end
 
+  describe "#edit" do
+    let(:client) { described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path) }
+    let(:post_id) { "12345" }
+    let(:edit_text) { "Updated post content" }
+
+    context "with valid credentials" do
+      before do
+        ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+          stub_request(:post, "#{WebClient::BASE_URL}/account.php")
+            .to_return(status: 302, headers: { "location" => WebClient::BASE_URL, "Set-Cookie" => "session=abc123" })
+
+          stub_request(:post, "#{WebClient::BASE_URL}/editpost.php")
+            .with(body: hash_including(
+              "action" => "updatepost",
+              "postid" => post_id,
+              "message" => edit_text,
+            ),
+                 )
+            .to_return(status: 302, headers: { "location" => "#{WebClient::BASE_URL}/showthread.php?threadid=#{thread_id}" })
+        end
+      end
+
+      it "edits the post" do
+        ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+          result = client.edit(post_id: post_id, text: edit_text)
+          expect(result).to be_a(String)
+        end
+      end
+    end
+  end
+
   describe "authentication" do
     let(:client) { described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path) }
 

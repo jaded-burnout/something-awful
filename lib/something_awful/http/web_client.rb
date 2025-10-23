@@ -26,10 +26,10 @@ class WebClient
     JSON.parse(response)
   end
 
-  def fetch_page(page_number: 1)
+  def fetch_page(page_number: 1, user_id: nil)
     raise "Cannot fetch pages without a thread_id" unless thread_id
 
-    authenticated_request { |http| http.get(thread_url(page_number: page_number)) }
+    authenticated_request { |http| http.get(thread_url(page_number: page_number, user_id: user_id)) }
   end
 
   def fetch_profile(user_id:)
@@ -58,6 +58,20 @@ class WebClient
           form_cookie: form_cookie,
           message: text,
           submit: "Submit Reply",
+        },
+      )
+    end
+  end
+
+  def edit(post_id:, text:)
+    authenticated_request do |http|
+      http.post(
+        "#{BASE_URL}/editpost.php",
+        form: {
+          action: "updatepost",
+          postid: post_id,
+          message: text,
+          submit: "Save Changes",
         },
       )
     end
@@ -105,8 +119,9 @@ private
     end
   end
 
-  def thread_url(page_number:)
+  def thread_url(page_number:, user_id: nil)
     url = BASE_URL + "/showthread.php?threadid=#{thread_id}"
+    url += "&userid=#{user_id}" if user_id
 
     if page_number > 1
       url + "&perpage=40&pagenumber=#{page_number}"
