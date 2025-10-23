@@ -3,7 +3,7 @@ require "spec_helper"
 require "voting/instant_runoff"
 
 RSpec.describe InstantRunoff do
-  subject(:runoff) { described_class.new(votes: votes) }
+  subject(:runoff) { described_class.new(votes:) }
 
   context "when the dog candidate has more than 50% of the vote in the first round" do
     let(:votes) {

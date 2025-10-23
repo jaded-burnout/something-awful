@@ -4,7 +4,7 @@ require "something_awful/client"
 RSpec.describe SomethingAwful::Client do
   let(:thread_id) { "123456" }
   let(:cookies_file_path) { File.join(Dir.tmpdir, "test_cookies_#{Time.now.to_i}.txt") }
-  let(:client) { described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path) }
+  let(:client) { described_class.new(thread_id:, cookies_file_path:) }
   let(:thread_html_single) { SomethingAwful.root.join("spec/fixtures/thread_page_single.html").read }
   let(:thread_html) { SomethingAwful.root.join("spec/fixtures/thread_page.html").read }
   let(:thread_page_2_html) { SomethingAwful.root.join("spec/fixtures/thread_page_2.html").read }
@@ -81,7 +81,7 @@ RSpec.describe SomethingAwful::Client do
 
     it "returns only non-bot posts" do
       ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-        posts = client.user_posts
+        posts = client.user_posts.to_a
 
         expect(posts.length).to eq(3)
         expect(posts.map(&:author)).to eq(%w[TestUser1 TestUser2 TestUser3])
@@ -100,7 +100,7 @@ RSpec.describe SomethingAwful::Client do
 
     it "returns only bot posts" do
       ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-        posts = client.bot_posts
+        posts = client.bot_posts.to_a
 
         expect(posts.length).to eq(1)
         expect(posts.first.author).to eq("Adbot")
@@ -121,7 +121,7 @@ RSpec.describe SomethingAwful::Client do
 
     it "returns posts after cutoff time authored by the current user" do
       ClimateControl.modify SA_USERNAME: "TestUser2", SA_PASSWORD: "testpass" do
-        posts = client.my_posts(after: cutoff_time)
+        posts = client.my_posts(after: cutoff_time).to_a
 
         expect(posts.length).to eq(1)
         expect(posts.first.author).to eq("TestUser2")
@@ -155,9 +155,13 @@ RSpec.describe SomethingAwful::Client do
   describe "#edit_post" do
     let(:post_id) { "12345" }
     let(:edit_text) { "Updated content" }
+    let(:edit_form_html) { SomethingAwful.root.join("spec/fixtures/edit_form.html").read }
 
     before do
       ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
+        stub_request(:get, "#{WebClient::BASE_URL}/editpost.php?action=editpost&postid=#{post_id}")
+          .to_return(status: 200, body: edit_form_html)
+
         stub_request(:post, "#{WebClient::BASE_URL}/editpost.php")
           .with(body: hash_including(
             "action" => "updatepost",
@@ -171,7 +175,7 @@ RSpec.describe SomethingAwful::Client do
 
     it "delegates to WebClient#edit" do
       ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-        result = client.edit_post(post_id: post_id, text: edit_text)
+        result = client.edit_post(post_id:, text: edit_text)
         expect(result).to be_a(String)
       end
     end
@@ -189,19 +193,19 @@ RSpec.describe SomethingAwful::Client do
 
     it "returns posts filtered by user ID" do
       ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-        posts = client.posts_by_user(user_id: user_id)
+        posts = client.posts_by_user(user_id:).to_a
 
         expect(posts).to be_an(Array)
         expect(posts.length).to eq(4)
       end
     end
 
-    it "caches posts per user_id" do
+    it "returns an enumerator that can be iterated lazily" do
       ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-        first_posts = client.posts_by_user(user_id: user_id)
-        second_posts = client.posts_by_user(user_id: user_id)
+        enumerator = client.posts_by_user(user_id:)
 
-        expect(first_posts.object_id).to eq(second_posts.object_id)
+        expect(enumerator).to be_an(Enumerator)
+        expect(enumerator.first).to be_a(Post)
       end
     end
   end
@@ -236,7 +240,7 @@ RSpec.describe SomethingAwful::Client do
 
       it "returns filtered posts and page count" do
         ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-          posts, page_count = client.fetch_page(page_number: 1, user_id: user_id)
+          posts, page_count = client.fetch_page(page_number: 1, user_id:)
 
           expect(posts).to be_an(Array)
           expect(page_count).to be_an(Integer)
@@ -263,7 +267,7 @@ RSpec.describe SomethingAwful::Client do
 
     it "fetches all pages and combines posts" do
       ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-        posts = client.user_posts
+        posts = client.user_posts.to_a
 
         expect(posts.length).to eq(5)
 
@@ -278,7 +282,7 @@ RSpec.describe SomethingAwful::Client do
 
   describe "initialization" do
     it "requires a thread_id" do
-      expect { described_class.new(thread_id: thread_id) }.not_to raise_error
+      expect { described_class.new(thread_id:) }.not_to raise_error
     end
 
     it "stores the thread_id" do

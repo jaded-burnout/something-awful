@@ -29,7 +29,9 @@ class WebClient
   def fetch_page(page_number: 1, user_id: nil)
     raise "Cannot fetch pages without a thread_id" unless thread_id
 
-    authenticated_request { |http| http.get(thread_url(page_number: page_number, user_id: user_id)) }
+    authenticated_request { |http| http.get(thread_url(page_number:, user_id:)) }.tap do |body|
+      save_backup(body, page_number, user_id) if SomethingAwful.configuration.backup_path
+    end
   end
 
   def fetch_profile(user_id:)
@@ -55,7 +57,7 @@ class WebClient
           action: "postreply",
           threadid: thread_id,
           formkey: form_key,
-          form_cookie: form_cookie,
+          form_cookie:,
           message: text,
           parseurl: "yes",
           bookmark: "yes",
@@ -65,14 +67,31 @@ class WebClient
     end
   end
 
-  def edit(post_id:, text:)
+  def edit(post_id:, text: nil, &block)
+    raise ArgumentError, "Either text or block must be provided, not both" if text && block
+    raise ArgumentError, "Either text or block must be provided" unless text || block
+
+    # If block given, call it with original text to get modified text
+    message = if block
+      # Fetch the edit form to get the original content
+      edit_form = authenticated_request { |http|
+        http.get(BASE_URL + "/editpost.php?action=editpost&postid=#{post_id}")
+      }
+
+      original_text = extract_textarea_value(edit_form, name: "message")
+
+      block.call(original_text)
+    else
+      text
+    end
+
     authenticated_request do |http|
       http.post(
         "#{BASE_URL}/editpost.php",
         form: {
           action: "updatepost",
           postid: post_id,
-          message: text,
+          message:,
           parseurl: "yes",
           bookmark: "yes",
           submit: "Save Changes",
@@ -105,8 +124,8 @@ private
       "#{BASE_URL}/account.php",
       form: {
         action: "login",
-        username: username,
-        password: password,
+        username:,
+        password:,
       },
     ).flush
 
@@ -151,5 +170,19 @@ private
     if html =~ /name="#{name}" value="([^"]+)"/
       ::Regexp.last_match(1)
     end
+  end
+
+  def extract_textarea_value(html, name:)
+    if html =~ %r{<textarea[^>]*name="#{name}"[^>]*>(.*?)</textarea>}m
+      ::Regexp.last_match(1)
+    end
+  end
+
+  def save_backup(body, page_number, user_id)
+    backup_dir = Pathname.new(SomethingAwful.configuration.backup_path)
+    backup_dir.mkpath unless backup_dir.exist?
+
+    filename = "thread_#{thread_id}_page_#{page_number}_user_#{user_id || 'all'}.html"
+    File.write(backup_dir.join(filename), body)
   end
 end

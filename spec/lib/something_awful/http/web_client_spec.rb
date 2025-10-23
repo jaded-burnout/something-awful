@@ -16,32 +16,32 @@ RSpec.describe WebClient do
       end
 
       it "loads cookies from file" do
-        client = described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path)
+        client = described_class.new(thread_id:, cookies_file_path:)
         expect(client).to be_a(described_class)
       end
     end
 
     context "with cookies file that doesn't exist" do
       it "initializes without loading cookies" do
-        client = described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path)
+        client = described_class.new(thread_id:, cookies_file_path:)
         expect(client).to be_a(described_class)
       end
     end
 
     context "without thread_id" do
       it "can still be initialized" do
-        client = described_class.new(cookies_file_path: cookies_file_path)
+        client = described_class.new(cookies_file_path:)
         expect(client).to be_a(described_class)
       end
     end
   end
 
   describe "#fetch_page" do
-    let(:client) { described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path) }
+    let(:client) { described_class.new(thread_id:, cookies_file_path:) }
     let(:thread_html) { SomethingAwful.root.join("spec/fixtures/thread_page.html").read }
 
     context "without a thread_id" do
-      let(:client) { described_class.new(cookies_file_path: cookies_file_path) }
+      let(:client) { described_class.new(cookies_file_path:) }
 
       it "raises an error" do
         expect { client.fetch_page }.to raise_error(/Cannot fetch pages without a thread_id/)
@@ -90,7 +90,7 @@ RSpec.describe WebClient do
   end
 
   describe "#fetch_profile" do
-    let(:client) { described_class.new(cookies_file_path: cookies_file_path) }
+    let(:client) { described_class.new(cookies_file_path:) }
     let(:user_id) { "12345" }
     let(:profile_html) { "<html><body>User Profile</body></html>" }
 
@@ -106,14 +106,14 @@ RSpec.describe WebClient do
 
     it "fetches user profile", vcr: { cassette_name: "fetch_profile" } do
       ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-        result = client.fetch_profile(user_id: user_id)
+        result = client.fetch_profile(user_id:)
         expect(result).to include("User Profile")
       end
     end
   end
 
   describe "#fetch_json_url" do
-    let(:client) { described_class.new(cookies_file_path: cookies_file_path) }
+    let(:client) { described_class.new(cookies_file_path:) }
     let(:json_url) { "#{WebClient::BASE_URL}/index.php?json=1" }
     let(:json_response) { '{"forums": [{"id": 1, "name": "Test Forum"}]}' }
 
@@ -137,12 +137,12 @@ RSpec.describe WebClient do
   end
 
   describe "#reply" do
-    let(:client) { described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path) }
+    let(:client) { described_class.new(thread_id:, cookies_file_path:) }
     let(:reply_form_html) { SomethingAwful.root.join("spec/fixtures/reply_form.html").read }
     let(:reply_text) { "Test reply message" }
 
     context "without a thread_id" do
-      let(:client) { described_class.new(cookies_file_path: cookies_file_path) }
+      let(:client) { described_class.new(cookies_file_path:) }
 
       it "raises an error" do
         expect { client.reply(reply_text) }.to raise_error(/Cannot reply without a thread_id/)
@@ -173,15 +173,19 @@ RSpec.describe WebClient do
   end
 
   describe "#edit" do
-    let(:client) { described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path) }
+    let(:client) { described_class.new(thread_id:, cookies_file_path:) }
     let(:post_id) { "12345" }
     let(:edit_text) { "Updated post content" }
+    let(:edit_form_html) { SomethingAwful.root.join("spec/fixtures/edit_form.html").read }
 
     context "with valid credentials" do
       before do
         ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
           stub_request(:post, "#{WebClient::BASE_URL}/account.php")
             .to_return(status: 302, headers: { "location" => WebClient::BASE_URL, "Set-Cookie" => "session=abc123" })
+
+          stub_request(:get, "#{WebClient::BASE_URL}/editpost.php?action=editpost&postid=#{post_id}")
+            .to_return(status: 200, body: edit_form_html)
 
           stub_request(:post, "#{WebClient::BASE_URL}/editpost.php")
             .with(body: hash_including(
@@ -196,7 +200,7 @@ RSpec.describe WebClient do
 
       it "edits the post" do
         ClimateControl.modify SA_USERNAME: "testuser", SA_PASSWORD: "testpass" do
-          result = client.edit(post_id: post_id, text: edit_text)
+          result = client.edit(post_id:, text: edit_text)
           expect(result).to be_a(String)
         end
       end
@@ -204,7 +208,7 @@ RSpec.describe WebClient do
   end
 
   describe "authentication" do
-    let(:client) { described_class.new(thread_id: thread_id, cookies_file_path: cookies_file_path) }
+    let(:client) { described_class.new(thread_id:, cookies_file_path:) }
 
     context "when credentials are missing" do
       it "raises an error when trying to authenticate" do
